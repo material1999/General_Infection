@@ -1,5 +1,6 @@
 package Writer;
 
+import Graph.Node;
 import com.opencsv.CSVWriter;
 
 import java.util.Set;
