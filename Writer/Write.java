@@ -1,9 +1,8 @@
 package Writer;
 
-import Graph.Node;
 import com.opencsv.CSVWriter;
 
-import java.util.Set;
+import java.util.ArrayList;
 
 public class Write {
 
@@ -12,7 +11,7 @@ public class Write {
         writer.writeNext(data1);
 	}
 
-    public static void WriteCommunities(CSVWriter writer, Set<Integer> comm_nodes) {
+    public static void WriteCommunities(CSVWriter writer, Boolean[] comm_nodes) {
         writer.writeNext(new String[] {comm_nodes.toString()});
     }
 

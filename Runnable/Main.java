@@ -10,7 +10,6 @@ import com.opencsv.CSVWriter;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.TreeSet;
 
 public class Main {
 
@@ -20,42 +19,11 @@ public class Main {
     static CSVWriter writer;
     static String resultPath;
     static double rand;
-    static int level, max, m, b;
+
+    static int level, max, m, b, lastIndex;
     static int minlevel = 1;
     static boolean intersect = false;
-    static TreeSet<Integer> comm_nodes = new TreeSet() {
-        @Override
-        public String toString() {
-            String ret = "";
-            for (Object o: this) {
-                ret += o + " ";
-            }
-            ret = ret.strip();
-            return ret;
-        }
-    };
-    static TreeSet<Integer> H = new TreeSet() {
-        @Override
-        public String toString() {
-            String ret = "";
-            for (Object o: this) {
-                ret += o + " ";
-            }
-            ret = ret.strip();
-            return ret;
-        }
-    };
-    static TreeSet<Integer> B = new TreeSet() {
-        @Override
-        public String toString() {
-            String ret = "";
-            for (Object o: this) {
-                ret += o + " ";
-            }
-            ret = ret.strip();
-            return ret;
-        }
-    };
+    static Boolean[] H, B;
 
     public static void infectionApproximation(CSVWriter writer) {
         for (int j = 1; j <= nodeNumber; j++) {
@@ -99,77 +67,167 @@ public class Main {
         }
     }
 
+    /*
     public static void cliqueCommunityFinder() {
-        for (int j = 1; j <= nodeNumber; j++) {
+        //for (int j = 1; j <=nodeNumber; j++) {
+        for (int j = 1; j <=1; j++) {
             level = 0;
+            int size;
+            H.clear();
+            B.clear();
             H.add(j);
             for (Node n : network.getNode(Integer.toString(j)).getOutneighbour()) {
                 B.add(Integer.parseInt(n.getId()));
             }
-            //System.out.println(H);
+            System.out.println(H);
             System.out.println(B);
+            System.out.println();
+            for (Integer b: B) {
+                size = 0;
+                for (int h : H) {
+                    ArrayList<Edge> edges = network.getEdges();
+                    for (Edge edge : edges) {
+                        if (Integer.parseInt(edge.getIn().getId()) == h && Integer.parseInt(edge.getOut().getId()) == b) {
+                            System.out.println(edge);
+                            size++;
+                        }
+                    }
+                }
+                if (size == H.size()) {
+                    H.add(b);
+                    System.out.println(H);
+                    System.out.println(B);
+                    System.out.println();
+                }
+
+            }
+        }
+    }
+    */
+
+    public static void cliqueCommunityFinder() {
+        for (int j = 1; j <= nodeNumber; j++) {
+            level = 0;
+            for (int z = 0; z < H.length; z++) {
+                B[z] = false;
+            }
+            for (int z = 0; z < H.length; z++) {
+                H[z] = false;
+            }
+            H[j - 1] = true;
+            for (Node n : network.getNode(Integer.toString(j)).getOutneighbour()) {
+                B[Integer.parseInt(n.getId()) - 1] = true;
+            }
+            /*
+            for (Boolean bool : H) {
+                System.out.print(bool + " ");
+            }
+            System.out.println();
+            for (Boolean bool : B) {
+                System.out.print(bool + " ");
+            }
+            System.out.println();
+            System.out.println();
+            */
             cliqueFinder(H, B);
         }
     }
 
-    public static void cliqueFinder(TreeSet<Integer> H, TreeSet<Integer> B) {
+    public static void cliqueFinder(Boolean[] H, Boolean[] B) {
         max = 1;
         level++;
-        m = H.last();
-        //System.out.println(m);
-        //System.out.println(B);
-        for (Integer b: B) {
+        for (int y = 0; y < nodeNumber; y++) {
+            if (H[y]) lastIndex = y;
+        }
+        m = lastIndex + 1;
+        //System.out.println("m: " + m);
+        for (int x = 0; x < B.length; x++) {
             max = 0;
-            if (b > m) {
-                H.add(b);
-                TreeSet<Integer> helperSet = new TreeSet<>();
-                TreeSet<Integer> intersectSet = new TreeSet<>();
+
+            if (B[x] && x + 1 > m) {
+                H[x] = true;
+                for (Boolean bool : H) {
+                    System.out.print(bool + " ");
+                }
+                System.out.println();
+                for (Boolean bool : B) {
+                    System.out.print(bool + " ");
+                }
+                System.out.println();
+                System.out.println();
                 intersect = false;
-                for (Node n: network.getNode(Integer.toString(b)).getOutneighbour()) {
-                    helperSet.add(Integer.parseInt(n.getId()));
-                    if (B.contains(Integer.parseInt(n.getId()))) {
+                Boolean[] intersectArray = new Boolean[nodeNumber];
+                for (int z = 0; z < intersectArray.length; z++) {
+                    intersectArray[z] = false;
+                }
+                for (Node n : network.getNode(Integer.toString(x + 1)).getOutneighbour()) {
+                    if (B[Integer.parseInt(n.getId()) - 1]) {
+                        intersectArray[Integer.parseInt(n.getId()) - 1] = true;
                         intersect = true;
-                        intersectSet.add(Integer.parseInt(n.getId()));
                     }
                 }
+                /*
+                System.out.println("m: " + m);
+                System.out.println("b: " + x);
+                System.out.println("H: " + H);
+                System.out.println("B: " + B);
+                System.out.println("intersect: " + intersectArray);
+                System.out.println("level: " + level);
+                System.out.println();
+                */
+
                 if (intersect) {
-                    cliqueFinder(H, intersectSet);
+                    cliqueFinder(H, intersectArray);
                     if (level > minlevel) {
-                        H.remove(b);
+                        H[b] = true;
+                        //System.out.println("H: " + H);
                         level--;
+                        //System.out.println("level: " + level);
+                        //System.out.println();
                         return;
                     }
                 } else {
+                    //System.out.println(intersect);
+                    //System.out.println();
                     Write.WriteCommunities(writer, H);
-                    H.remove(b);
+                    System.out.println("kiirva fajlba");
+                    H[b] = false;
+                    System.out.println("H: " + H);
+                    System.out.println();
                 }
             }
-        }
-        if (max == 1) {
-            Write.WriteCommunities(writer, H);
         }
         level--;
     }
 
+
     public static void main(String[] args) throws IOException {
         //for (int i = 1; i <= Parameters.fileCount; i++)
-        for (int i = 0; i <= 0; i++) {
+        for (int i = 1081; i <= 1081; i++) {
             networkFilePath = Parameters.networksFolder + i + "/edgeweighted.csv";
             network = Read.ReadCsv(networkFilePath);
             nodeNumber = network.getNodes().size();
-            H.clear();
-            B.clear();
-            comm_nodes.clear();
+            H = new Boolean[nodeNumber];
+            B = new Boolean[nodeNumber];
+            for (int z = 0; z < H.length; z++) {
+                B[z] = false;
+            }
+            for (int z = 0; z < H.length; z++) {
+                H[z] = false;
+            }
 
-            resultPath = "results/sim_inf/sim_inf_" + i + ".csv";
+            /*
+            resultPath = Parameters.simInfectionProbabilityFolder + "sim_inf_" + i + ".csv";
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
                     CSVWriter.DEFAULT_LINE_END);
             infectionSimulation(writer);
             writer.close();
+            */
 
-            resultPath = "results/sim_com/sim_com_" + i + ".csv";
+
+            resultPath = Parameters.simCommunityFolder + "sim_com_" + i + ".csv";
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
