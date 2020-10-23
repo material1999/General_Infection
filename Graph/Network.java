@@ -17,20 +17,19 @@ public class Network {
 	public void addEdge(Edge a) {
 		Node in=null;
 		Node out=null;
-	
-		
+
 		if(nodes.contains(a.getOut())) {	
-			out=(Node)nodemap.get(a.getOut().getId());
+			out = nodemap.get(a.getOut().getId());
 		}else {
 			nodes.add(a.getOut());
-			out=a.getOut();
+			out = a.getOut();
 		}
 		
 		if(nodes.contains(a.getIn())) {
-			in=(Node)nodemap.get(a.getIn().getId());
+			in = nodemap.get(a.getIn().getId());
 		}else {
 			nodes.add(a.getIn());
-			in=a.getIn();
+			in = a.getIn();
 		}
 		a.setIn(in);
 		a.setOut(out);
@@ -99,5 +98,17 @@ public class Network {
 		return node;
 	}
 	
+	public Edge getEdge(int a, int b) {
+		Node n1 = this.getNode(Integer.toString(a));
+		Node n2 = this.getNode(Integer.toString(b));
+		Edge ret = null;
+		for (Edge edge: this.getEdges()) {
+			if (edge.getOut() == n1 && edge.getIn() == n2) {
+				ret = edge;
+				break;
+			}
+		}
+		return ret;
+	}
 
 }
