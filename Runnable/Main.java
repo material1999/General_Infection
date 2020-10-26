@@ -21,6 +21,7 @@ public class Main {
     static CSVWriter writer;
     static String resultPath;
     static double rand;
+    static int s, edges;
 
     static HashSet<TreeSet<Integer>> K = new HashSet() {
         @Override
@@ -92,9 +93,19 @@ public class Main {
         helper.clear();
         for (TreeSet<Integer> A : K) {
             for (Node n : network.getNodes()) {
-                L = new TreeSet<>(A);
+                L = new TreeSet<>();
+                L.addAll(A);
                 L.add(Integer.parseInt(n.getId()));
-                helper.add(L);
+                System.out.println("A: " + A);
+                System.out.println("size: " + A.size());
+                System.out.println("mean A: " + sumEdgeWeight(A));
+                System.out.println("L: " + L);
+                System.out.println("mean L: " + sumEdgeWeight(L));
+                if (sumEdgeWeight(L) / L.size() > sumEdgeWeight(A) / A.size()) {
+                    helper.add(L);
+                    System.out.println("added");
+                }
+                System.out.println();
             }
         }
     }
@@ -127,7 +138,7 @@ public class Main {
             tsi.add(Integer.parseInt(n.getId()));
             K.add(tsi);
         }
-        for (int s = 1; s < Parameters.maxCommunitySize; s++) {
+        for (s = 2; s <= Parameters.maxCommunitySize; s++) {
             addVertexIteration();
             K.addAll(helper);
             deleteSubset();
@@ -136,35 +147,44 @@ public class Main {
         Write.WriteCommunities(writer, K);
     }
 
-    public static double meanEdgeWeight(TreeSet<Integer> vertices) {
-        double meanWeight = 0;
+    public static double sumEdgeWeight(TreeSet<Integer> vertices) {
+        double sumWeight = 0;
+        edges = 0;
         for (Integer v1 : vertices) {
             for (Integer v2 : vertices) {
                 if (network.getEdge(v1, v2) != null) {
-                    meanWeight += network.getEdge(v1, v2).getWeight();
+                    sumWeight += network.getEdge(v1, v2).getWeight();
+                    edges++;
+                } else if (network.getEdge(v2, v1) != null) {
+                    sumWeight += network.getEdge(v2, v1).getWeight();
+                    edges++;
                 }
             }
         }
-        meanWeight /= vertices.size();
-        return  meanWeight;
+        //meanWeight /= vertices.size();
+        //if (edges > 0) meanWeight /= edges;
+        if (edges < vertices.size()) return 0;
+        return sumWeight;
     }
 
     public static void main(String[] args) throws IOException {
         //for (int i = 1; i <= Parameters.fileCount; i++)
-        for (int i = 1081; i <= 1081; i++) {
+        for (int i = 0; i <= 0; i++) {
             networkFilePath = Parameters.networksFolder + i + "/edgeweighted.csv";
             network = Read.ReadCsv(networkFilePath);
             nodeNumber = network.getNodes().size();
 
             resultPath = "results/sim_inf/sim_inf_" + i + ".csv";
+
             /*
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
                     CSVWriter.DEFAULT_LINE_END);
-            writer.writeNext(new String[]{"\"V1\";\"V2\";\"edgeweight\""});
+            writer.writeNext(new String[]{"V1,V2,edgeweight"}, true);
             infectionSimulation(writer);
             writer.close();
+            System.out.println("siminf done");
             */
 
             network = Read.ReadCsv(resultPath);
