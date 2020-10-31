@@ -8,7 +8,7 @@ public class Node {
 	private String id;
 	private States state;
 	private ArrayList<Edge> inlist;
-	private ArrayList<Edge> outlist;   
+	private ArrayList<Edge> outlist;
 	private Set<Node> outneighbour;
 	private Set<Node> neighbour;
 	private double fv;
@@ -114,7 +114,7 @@ public class Node {
 	public void finalizefv(int samplesize) {
 		this.fv=this.fv/(double)samplesize;
 		if(this.fv>1.0) {
-			System.out.println("SZAR"+ this.fv);
+			System.out.println("SZAR "+ this.fv);
 		}
 	}
 

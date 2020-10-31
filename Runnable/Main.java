@@ -20,7 +20,7 @@ public class Main {
     static int nodeNumber;
     static CSVWriter writer;
     static String resultPath;
-    static double rand;
+    static double rand, mean;
     static int s, edges;
 
     static HashSet<TreeSet<Integer>> K = new HashSet() {
@@ -35,6 +35,17 @@ public class Main {
         }
     };
     static HashSet<TreeSet<Integer>> helper = new HashSet() {
+        @Override
+        public String toString() {
+            String ret = "";
+            for (Object o: this) {
+                ret += o + " ";
+            }
+            ret = ret.strip();
+            return ret;
+        }
+    };
+    static HashSet<TreeSet<Integer>> J = new HashSet() {
         @Override
         public String toString() {
             String ret = "";
@@ -92,41 +103,45 @@ public class Main {
     public static void addVertexIteration() {
         helper.clear();
         for (TreeSet<Integer> A : K) {
+
+            //csak a szomszédokon végigmenni (neighbour)
+
             for (Node n : network.getNodes()) {
                 L = new TreeSet<>();
                 L.addAll(A);
-                L.add(Integer.parseInt(n.getId()));
-                System.out.println("A: " + A);
-                System.out.println("size: " + A.size());
-                System.out.println("mean A: " + sumEdgeWeight(A));
-                System.out.println("L: " + L);
-                System.out.println("mean L: " + sumEdgeWeight(L));
-                if (sumEdgeWeight(L) / L.size() > sumEdgeWeight(A) / A.size()) {
-                    helper.add(L);
-                    System.out.println("added");
+                if (isConnected(L, Integer.parseInt(n.getId()))) {
+                    L.add(Integer.parseInt(n.getId()));
+                    //System.out.println("A: " + A);
+                    //System.out.println("mean A: " + meanEdgeWeight(A));
+                    //System.out.println("L: " + L);
+                    //System.out.println("mean L: " + meanEdgeWeight(L));
+                    if (meanEdgeWeight(L) > mean && !K.contains(L)) {
+                        helper.add(L);
+                        //System.out.println("added");
+                    }
+                    //System.out.println();
                 }
-                System.out.println();
             }
         }
     }
 
     public static void deleteSubset() {
+        J.clear();
+        J.addAll(helper);
         helper.clear();
-        for (TreeSet<Integer> A : K) {
+        for (TreeSet<Integer> A : J) {
             int match;
             for (TreeSet<Integer> a : K) {
                 deleteTemp = new TreeSet<>();
-                if (a != A) {
-                    match = 0;
-                    for (Integer integer : a) {
-                        if (A.contains(integer)) {
-                            match++;
-                        }
+                match = 0;
+                for (Integer integer : a) {
+                    if (A.contains(integer)) {
+                        match++;
                     }
-                    if (match == a.size()) {
-                        deleteTemp.addAll(a);
-                        helper.add(deleteTemp);
-                    }
+                }
+                if (match == a.size()) {
+                    deleteTemp.addAll(a);
+                    helper.add(deleteTemp);
                 }
             }
         }
@@ -139,24 +154,23 @@ public class Main {
             K.add(tsi);
         }
         for (s = 2; s <= Parameters.maxCommunitySize; s++) {
+            System.out.println("community size: " + s + " ...");
             addVertexIteration();
-            K.addAll(helper);
             deleteSubset();
+            K.addAll(J);
             K.removeAll(helper);
         }
         Write.WriteCommunities(writer, K);
     }
 
-    public static double sumEdgeWeight(TreeSet<Integer> vertices) {
-        double sumWeight = 0;
+
+    public static double meanEdgeWeight(TreeSet<Integer> vertices) {
+        double meanWeight = 0;
         edges = 0;
         for (Integer v1 : vertices) {
             for (Integer v2 : vertices) {
                 if (network.getEdge(v1, v2) != null) {
-                    sumWeight += network.getEdge(v1, v2).getWeight();
-                    edges++;
-                } else if (network.getEdge(v2, v1) != null) {
-                    sumWeight += network.getEdge(v2, v1).getWeight();
+                    meanWeight += network.getEdge(v1, v2).getWeight();
                     edges++;
                 }
             }
@@ -164,7 +178,32 @@ public class Main {
         //meanWeight /= vertices.size();
         //if (edges > 0) meanWeight /= edges;
         if (edges < vertices.size()) return 0;
-        return sumWeight;
+        meanWeight /= edges;
+        return meanWeight;
+    }
+
+    public static double networkMeanEdgeWeight() {
+        double meanWeight = 0;
+        for (Node n1 : network.getNodes()) {
+            for (Node n2 : network.getNodes()) {
+                if (network.getEdge(Integer.parseInt(n1.getId()), Integer.parseInt(n2.getId())) != null) {
+                    meanWeight += network.getEdge(Integer.parseInt(n1.getId()), Integer.parseInt(n2.getId())).getWeight();
+                }
+            }
+        }
+        meanWeight /= network.getEdges().size();
+        return meanWeight;
+    }
+
+    public static boolean isConnected(TreeSet<Integer> vertices, Integer newVertex) {
+        int counter = 0;
+        for (Integer v : vertices) {
+            if (network.getEdge(newVertex, v) != null) {
+                counter++;
+            }
+        }
+        int threshold = (int)Math.ceil(vertices.size()/2.0);
+        if (vertices.size() == 1 && counter == 0) return false; else return counter >= threshold;
     }
 
     public static void main(String[] args) throws IOException {
@@ -176,6 +215,7 @@ public class Main {
 
             resultPath = "results/sim_inf/sim_inf_" + i + ".csv";
 
+            ////////// Infection Simulation //////////
             /*
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
@@ -187,12 +227,14 @@ public class Main {
             System.out.println("siminf done");
             */
 
+            ////////// Community Detection //////////
             network = Read.ReadCsv(resultPath);
             resultPath = "results/sim_com/sim_com_" + i + ".csv";
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
                     CSVWriter.DEFAULT_LINE_END);
+            mean = networkMeanEdgeWeight();
             communityFinder();
             writer.close();
         }
