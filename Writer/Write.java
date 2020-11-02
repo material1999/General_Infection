@@ -2,14 +2,19 @@ package Writer;
 
 import com.opencsv.CSVWriter;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.TreeSet;
 
 public class Write {
 
-	public static void WriteProbabilities(CSVWriter writer, int from, int to, double p) {
-        String[] data1 = {Integer.toString(from), Integer.toString(to), Double.toString(p)};
-        writer.writeNext(data1);
+	public static void WriteProbabilities(CSVWriter writer, HashMap<String, Double> map) {
+		String temp;
+		for (Map.Entry<String, Double> entry : map.entrySet()) {
+			temp = entry.getKey() + ";" + entry.getValue();
+			writer.writeNext(new String[]{temp}, false);
+		}
 	}
 
     public static void WriteCommunities(CSVWriter writer, HashSet<TreeSet<Integer>> comm_nodes) {

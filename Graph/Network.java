@@ -102,13 +102,19 @@ public class Network {
 		Node n1 = this.getNode(Integer.toString(a));
 		Node n2 = this.getNode(Integer.toString(b));
 		Edge ret = null;
-		for (Edge edge: this.getEdges()) {
-			if (edge.getOut() == n1 && edge.getIn() == n2) {
-				ret = edge;
-				break;
+		if (n1.getNeighbour().contains(n2)) {
+			for (Edge edge: this.getEdges()) {
+				if (edge.getOut() == n1 && edge.getIn() == n2) {
+					ret = edge;
+					return ret;
+				}
+				if (edge.getOut() == n2 && edge.getIn() == n1) {
+					ret = edge;
+					return ret;
+				}
 			}
 		}
-		return ret;
+		return null;
 	}
 
 }

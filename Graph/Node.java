@@ -114,7 +114,8 @@ public class Node {
 	public void finalizefv(int samplesize) {
 		this.fv=this.fv/(double)samplesize;
 		if(this.fv>1.0) {
-			System.out.println("SZAR "+ this.fv);
+			System.out.println("fv bigger than 1: " + this.fv + ", setting it to 1...");
+			this.fv = 1;
 		}
 	}
 

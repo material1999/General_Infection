@@ -10,7 +10,9 @@ import com.opencsv.CSVWriter;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.TreeSet;
 
 public class Main {
@@ -22,6 +24,7 @@ public class Main {
     static String resultPath;
     static double rand, mean;
     static int s, edges;
+    static long startTime, elapsedTime, elapsedSeconds, seconds, minutes;
 
     static HashSet<TreeSet<Integer>> K = new HashSet() {
         @Override
@@ -58,55 +61,50 @@ public class Main {
     };
     static TreeSet<Integer> L, deleteTemp;
 
-    public static void infectionApproximation(CSVWriter writer) {
-        for (int j = 1; j <= nodeNumber; j++) {
-            for (Edge edge1: network.getNode(Integer.toString(j)).getOutlist()) {
-                Write.WriteProbabilities(writer, Integer.parseInt(edge1.getOut().getId()), Integer.parseInt(edge1.getIn().getId()), edge1.getWeight());
-                for (Edge edge2: edge1.getIn().getOutlist()) {
-                    if (edge1.getOut() != edge2.getIn()) {
-                        Write.WriteProbabilities(writer, Integer.parseInt(edge1.getOut().getId()), Integer.parseInt(edge2.getIn().getId()), edge1.getWeight() * edge2.getWeight());
-                    }
-                }
-            }
-        }
-    }
-
     public static void infectionSimulation(CSVWriter writer) {
+        HashMap<String, Double> toWrite = new HashMap<>();
+        String key;
         for (int j = 1; j <= nodeNumber; j++) {
             network.deleteFv();
             for (int k = 1; k <= Parameters.sampleSize; k++) {
                 network.notVisited();
-                for (Edge edge1: network.getNode(Integer.toString(j)).getOutlist()) {
+                for (Node node1: network.getNode(Integer.toString(j)).getNeighbour()) {
+                    //System.out.print(j + " --> " + node1.getId() + "\n");
                     rand = Math.random();
-                    if (edge1.getWeight() > rand) {
-                        edge1.getIn().addFv();
-                        edge1.getIn().setState(States.VISITED);
-                        for (Edge edge2: edge1.getIn().getOutlist()) {
+                    if (network.getEdge(j, Integer.parseInt(node1.getId())).getWeight() > rand) {
+                        node1.addFv();
+                        node1.setState(States.VISITED);
+                        for (Node node2: node1.getNeighbour()) {
                             rand = Math.random();
-                            if (edge2.getIn().getState() == States.NOTVISITED && edge2.getIn() != edge1.getOut() && edge2.getWeight() > rand) {
-                                edge2.getIn().addFv();
-                                edge2.getIn().setState(States.VISITED);
+                            if (node2.getState() == States.NOTVISITED &&
+                                    network.getEdge(Integer.parseInt(node1.getId()), Integer.parseInt(node2.getId())).getWeight() > rand) {
+                                node2.addFv();
+                                node2.setState(States.VISITED);
                             }
                         }
                     }
                 }
             }
             for (Node node: network.getNodes()) {
-                if (node.getFv() > 0) {
+                if (node.getFv() > 0 && Integer.parseInt(node.getId()) > j) {
                     node.finalizefv(Parameters.sampleSize);
-                    Write.WriteProbabilities(writer, j, Integer.parseInt(node.getId()), node.getFv());
+                    key = j + ";" + node.getId();
+                    toWrite.put(key, node.getFv());
                 }
             }
         }
+        Write.WriteProbabilities(writer, toWrite);
     }
 
     public static void addVertexIteration() {
         helper.clear();
+        Set<Node> neighbourSet = new HashSet<>();
         for (TreeSet<Integer> A : K) {
-
-            //csak a szomszédokon végigmenni (neighbour)
-
-            for (Node n : network.getNodes()) {
+            neighbourSet.clear();
+            for (Integer a : A) {
+                neighbourSet.addAll(network.getNode(Integer.toString(a)).getNeighbour());
+            }
+            for (Node n : neighbourSet) {
                 L = new TreeSet<>();
                 L.addAll(A);
                 if (isConnected(L, Integer.parseInt(n.getId()))) {
@@ -155,12 +153,26 @@ public class Main {
         }
         for (s = 2; s <= Parameters.maxCommunitySize; s++) {
             System.out.println("community size: " + s + " ...");
+            startTime = System.currentTimeMillis();
             addVertexIteration();
             deleteSubset();
             K.addAll(J);
             K.removeAll(helper);
+            elapsedTime = System.currentTimeMillis() - startTime;
+            elapsedSeconds = elapsedTime / 1000;
+            seconds = elapsedSeconds % 60;
+            minutes = elapsedSeconds / 60;
+            System.out.println("elapsed time: " + minutes + " min " + seconds + " sec");
         }
+        System.out.println("writing started");
+        startTime = System.currentTimeMillis();
         Write.WriteCommunities(writer, K);
+        System.out.println("writing ended");
+        elapsedTime = System.currentTimeMillis() - startTime;
+        elapsedSeconds = elapsedTime / 1000;
+        seconds = elapsedSeconds % 60;
+        minutes = elapsedSeconds / 60;
+        System.out.println("elapsed time: " + minutes + " min " + seconds + " sec\n");
     }
 
 
@@ -186,7 +198,8 @@ public class Main {
         double meanWeight = 0;
         for (Node n1 : network.getNodes()) {
             for (Node n2 : network.getNodes()) {
-                if (network.getEdge(Integer.parseInt(n1.getId()), Integer.parseInt(n2.getId())) != null) {
+                if (Integer.parseInt(n1.getId()) > Integer.parseInt(n2.getId())
+                        && network.getEdge(Integer.parseInt(n1.getId()), Integer.parseInt(n2.getId())) != null) {
                     meanWeight += network.getEdge(Integer.parseInt(n1.getId()), Integer.parseInt(n2.getId())).getWeight();
                 }
             }
@@ -207,37 +220,51 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
+        System.out.println();
         //for (int i = 1; i <= Parameters.fileCount; i++)
-        for (int i = 0; i <= 0; i++) {
-            networkFilePath = Parameters.networksFolder + i + "/edgeweighted.csv";
+        for (int i = 1; i <= 1; i++) {
+            networkFilePath = Parameters.networksFolder + i + "/edgeweighted_edit.csv";
             network = Read.ReadCsv(networkFilePath);
             nodeNumber = network.getNodes().size();
-
             resultPath = "results/sim_inf/sim_inf_" + i + ".csv";
 
             ////////// Infection Simulation //////////
             /*
+            System.out.println("siminf started");
+            startTime = System.currentTimeMillis();
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
-                    CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                    CSVWriter.NO_ESCAPE_CHARACTER,
                     CSVWriter.DEFAULT_LINE_END);
-            writer.writeNext(new String[]{"V1,V2,edgeweight"}, true);
+            writer.writeNext(new String[]{"V1;V2;edgeweight"}, true);
             infectionSimulation(writer);
             writer.close();
             System.out.println("siminf done");
+            elapsedTime = System.currentTimeMillis() - startTime;
+            elapsedSeconds = elapsedTime / 1000;
+            seconds = elapsedSeconds % 60;
+            minutes = elapsedSeconds / 60;
+            System.out.println("elapsed time: " + minutes + " min " + seconds + " sec\n");
             */
 
             ////////// Community Detection //////////
+
+            System.out.println("simcom started");
             network = Read.ReadCsv(resultPath);
             resultPath = "results/sim_com/sim_com_" + i + ".csv";
             writer = new CSVWriter(new FileWriter(resultPath), ';',
                     CSVWriter.NO_QUOTE_CHARACTER,
-                    CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                    CSVWriter.NO_ESCAPE_CHARACTER,
                     CSVWriter.DEFAULT_LINE_END);
             mean = networkMeanEdgeWeight();
             communityFinder();
             writer.close();
+            System.out.println("simcom done");
+
         }
+
+
+
     }
 
 }
