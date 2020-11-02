@@ -98,8 +98,11 @@ public class Main {
 
     public static void addVertexIteration() {
         helper.clear();
+        int counter = 0;
         Set<Node> neighbourSet = new HashSet<>();
         for (TreeSet<Integer> A : K) {
+            counter++;
+            System.out.println("add: " + counter + "/" + K.size());
             neighbourSet.clear();
             for (Integer a : A) {
                 neighbourSet.addAll(network.getNode(Integer.toString(a)).getNeighbour());
@@ -127,15 +130,18 @@ public class Main {
         J.clear();
         J.addAll(helper);
         helper.clear();
+        int counter = 0;
         for (TreeSet<Integer> A : J) {
             int match;
+            counter++;
+            System.out.println("delete: " + counter + "/" + J.size());
             for (TreeSet<Integer> a : K) {
                 deleteTemp = new TreeSet<>();
                 match = 0;
                 for (Integer integer : a) {
                     if (A.contains(integer)) {
                         match++;
-                    }
+                    } else break;
                 }
                 if (match == a.size()) {
                     deleteTemp.addAll(a);
@@ -215,7 +221,8 @@ public class Main {
                 counter++;
             }
         }
-        int threshold = (int)Math.ceil(vertices.size()/2.0);
+        //int threshold = (int)Math.ceil(vertices.size()/2.0);
+        int threshold = vertices.size();
         if (vertices.size() == 1 && counter == 0) return false; else return counter >= threshold;
     }
 
@@ -262,8 +269,6 @@ public class Main {
             System.out.println("simcom done");
 
         }
-
-
 
     }
 
